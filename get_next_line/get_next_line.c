@@ -6,81 +6,129 @@
 /*   By: mizem <mizem@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/01/25 19:10:47 by mizem             #+#    #+#             */
-/*   Updated: 2024/01/27 17:33:19 by mizem            ###   ########.fr       */
+/*   Updated: 2024/02/12 13:39:17 by mizem            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
-#include <limits.h>
 
-char	*big_str(int fd)
+int	ft_counter(char *s)
 {
-	int		bytes_read;
-	char	*str;
-	char	*temp;
+	int	i;
 
-	str = malloc(BUFFER_SIZE + 1);
-	temp = malloc(BUFFER_SIZE + 1);
-	if (!str || !temp)
-		return (NULL);
-	bytes_read = read(fd, temp, BUFFER_SIZE);
-	if (bytes_read == -1 || bytes_read == 0)
-		return (NULL);
-	while (bytes_read >= 1)
+	i = 0;
+	while (s[i])
 	{
-		bytes_read = read(fd, temp, BUFFER_SIZE);
-		if (bytes_read == 0)
-			break;
-		temp[bytes_read] = '\0';
-		str = ft_strjoin(str, temp);
+		if (s[i] == '\n')
+			return (i);
+		i++;
 	}
-	free(temp);
-	return (str);
+	return (i);
 }
 
-char	*first_line(char *big_str)
+char	*ft_read(int fd, char *res)
+{
+	int		bytes_read;
+	char	*buffer;
+
+	bytes_read = 1;
+	buffer = malloc(BUFFER_SIZE + 1);
+	if (!buffer)
+		return (NULL);
+	while (bytes_read > 0)
+	{
+		bytes_read = read(fd, buffer, BUFFER_SIZE);
+		if (bytes_read == -1)
+		{
+			free(buffer);
+			return (NULL);
+		}
+		buffer[bytes_read] = '\0';
+		res = ft_strjoin(res, buffer);
+		if (ft_strchr(res) != -1)
+			break ;
+	}
+	free(buffer);
+	return (res);
+}
+
+char	*find_line(char *str)
 {
 	int		i;
 	int		j;
 	char	*line;
 
-	i = 0;
+	if (!*str)
+		return (NULL);
+	i = ft_counter(str);
 	j = 0;
-	if (!big_str)
-		return (NULL);
-	while (big_str[i] && big_str[i] != '\n')
+	if (str[i] == '\n')
 		i++;
-	line = malloc(i + 2);
-	if (!line)
-		return (NULL);
-	while (i > 0)
+	line = ft_calloc(i + 1, sizeof(char));
+	while (j < i)
 	{
-		line[j] = big_str[j];
+		line[j] = str[j];
 		j++;
-		i--; 
 	}
-	line[j] = '\n';
-	line[j + 1] = '\0';
 	return (line);
+}
+
+char	*update_str(char *old_str)
+{
+	int		i;
+	size_t	j;
+	char	*new_str;
+
+	if (!old_str)
+		return (NULL);
+	j = 0;
+	i = ft_counter(old_str);
+	new_str = ft_calloc(ft_strlen(old_str) - i + 1, sizeof(char));
+	if (old_str[i] == '\n')
+		i++;
+	while (old_str[i + j])
+	{
+		new_str[j] = old_str[i + j];
+		j++;
+	}
+	free(old_str);
+	if (!ft_strlen(new_str))
+	{
+		free(new_str);
+		new_str = (NULL);
+	}
+	return (new_str);
 }
 
 char	*get_next_line(int fd)
 {
 	static char	*str;
-	char		*first_one;
+	char		*line;
 
-	if (BUFFER_SIZE < 0 || fd < 0 || BUFFER_SIZE > INT_MAX)
+	if (BUFFER_SIZE < 0 || fd < 0 || BUFFER_SIZE > INT_MAX 
+		|| read(fd, 0, 0) == -1)
+	{
+		free(str);
+		str = NULL;
 		return (NULL);
+	}
+	str = ft_read(fd, str);
 	if (!str)
-		str = big_str(fd);
-	first_one = first_line(str);
-	return (first_one);
+		return (NULL);
+	line = find_line(str);
+	str = update_str(str);
+	return (line);
 }
 
-int main()
-{
-	int fd = open("test.txt", O_RDWR);
-	// get_next_line(fd);
-	printf("%s", get_next_line(fd));	
-	// system("leaks a.out");
-}
+// int main()
+// {
+// 	int fd = open("test.txt", O_RDWR);
+// 	// get_next_line(fd);
+// 	printf("%s", get_next_line(fd));
+// 	printf("%s", get_next_line(fd));
+// 	printf("%s", get_next_line(fd));
+// 	printf("%s", get_next_line(fd));
+// 	printf("%s", get_next_line(fd));
+// 	printf("%s", get_next_line(fd));
+// 	// system("leaks -q a.out");
+// }
